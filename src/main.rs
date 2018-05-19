@@ -1,3 +1,8 @@
+//! Scheduler
+//! Schedules API calls to Twitter that are picked up from AWS SQS.
+//! Also listens to another SQS that informs about a result of a call
+//! and then reschedules the call based on that result.
+
 extern crate rand;
 
 mod region;
@@ -6,43 +11,31 @@ mod sqs;
 mod boot;
 mod sns;
 
-use std::thread;
 use region::Region;
-use std::sync::mpsc;
-use event::InputEvent;
-use event::OutputEvent;
-use std::sync::mpsc::Sender;
-use std::sync::mpsc::Receiver;
-
-fn start_output_channel(regions: &mut Vec<Region>) {
-    let (tx, rx): (Sender<OutputEvent>, Receiver<OutputEvent>) = mpsc::channel();
-
-    for region in regions {
-        region.channel(mpsc::Sender::clone(&tx));
-    }
-
-    thread::spawn(move || {
-        for event in rx {
-            thread::spawn(move || sqs::push(event));
-        }
-    });
-}
 
 fn main() {
+    // Loads all available regions.
     let mut regions: Vec<Region> = boot::get_regions();
 
-    start_output_channel(&mut regions);
+    // TODO: Consider putting following into an infinit loop.
 
-    let rx: Receiver<InputEvent> = sqs::listen();
+    // Sets up a comm channel where the regions stream their output messages.
+    sqs::stream(&mut regions);
 
-    for event in rx {
+    // Routes the SQS events to a relevant region.
+    for event in sqs::listen() {
+        // Finds the region via the identifier.
         let mut region = regions.iter_mut()
             .find(|region| region.id == event.region_id);
             
         match region {
+            // Let's the region handle the event.
             Some(ref mut region) => region.handle_event(event),
-            None => sns::notify(String::from("Unknown region ID"), sns::Priority::SEVERE),
+            // TODO: Give more detail about the region id.
+            None => sns::notify(String::from("Unknown region."), sns::Priority::STANDARD),
         };
     }
+
+    sns::notify(String::from("SQS Channel crashed."), sns::Priority::SEVERE);
 }
 

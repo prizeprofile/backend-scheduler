@@ -1,6 +1,6 @@
 pub enum Priority {
     SEVERE,
-    // STANDARD,
+    STANDARD,
 }
 
 pub fn notify(message: String, _priority: Priority) {
