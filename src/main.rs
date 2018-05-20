@@ -1,5 +1,5 @@
 //! Scheduler
-//! Schedules API calls to Twitter that are picked up from AWS SQS.
+//! Schedules API calls to Twitter that are picked up from AWS SNS.
 //! Also listens to another SQS that informs about a result of a call
 //! and then reschedules the call based on that result.
 
@@ -20,7 +20,7 @@ fn main() {
     // TODO: Consider putting following into an infinit loop.
 
     // Sets up a comm channel where the regions stream their output messages.
-    sqs::stream(&mut regions);
+    sns::stream(&mut regions);
 
     // Routes the SQS events to a relevant region.
     for event in sqs::listen() {
@@ -32,10 +32,10 @@ fn main() {
             // Let's the region handle the event.
             Some(ref mut region) => region.handle_event(event),
             // TODO: Give more detail about the region id.
-            None => sns::notify(String::from("Unknown region."), sns::Priority::STANDARD),
+            None => sns::notify(sns::Topic::UnknownRegion),
         };
     }
 
-    sns::notify(String::from("SQS Channel crashed."), sns::Priority::SEVERE);
+    sns::notify(sns::Topic::SqsConnDropped);
 }
 

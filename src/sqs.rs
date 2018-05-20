@@ -1,8 +1,6 @@
 use std::thread;
-use region::Region;
 use std::sync::mpsc;
 use event::InputEvent;
-use event::OutputEvent;
 use std::time::Duration;
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::Receiver;
@@ -10,30 +8,7 @@ use std::sync::mpsc::Receiver;
 use rand::{thread_rng};
 use rand::distributions::{IndependentSample, Range};
 
-/// Clones `std::sync::mpcs::Sender` to every item in given `Vec<Region>`
-/// and spawns a new thread that listens to messages from this channel.
-/// The message type that is sent across the channel has to be of `OutputEvent` type.
-pub fn stream(regions: &mut Vec<Region>) {
-    // Boots a new channel.
-    let (tx, rx): (Sender<OutputEvent>, Receiver<OutputEvent>) = mpsc::channel();
-
-    for region in regions {
-        // Clones the transmiter to a region.
-        region.channel(mpsc::Sender::clone(&tx));
-    }
-
-    // Spawns a new thread and moves the ownership of the transmiter.
-    thread::spawn(move || {
-        for event in rx {
-            // Every time a message comes down the stream, spawns a new thread
-            // and calls sqs::push. This is important so that pushing the event
-            // doesn't block other regions.
-            thread::spawn(move || push(event));
-        }
-    });
-}
-
-/// Starts listening to messages from AWS SQS and returns the receiver object.
+/// Starts polling messages from AWS SQS and returns the receiver object.
 pub fn listen() -> Receiver<InputEvent> {
     // Boots a new channel.
     let (tx, rx): (Sender<InputEvent>, Receiver<InputEvent>) = mpsc::channel();
@@ -43,16 +18,6 @@ pub fn listen() -> Receiver<InputEvent> {
 
     // Returns the single receiver.
     rx
-}
-
-/// Pushes a new message to AWS SQS.
-fn push(event: OutputEvent) {
-    // Before pushing the message, thread sleeps for certain amount of time.
-    // This is to regulate the number of API calls we do to Twitter.
-    thread::sleep(Duration::from_secs(event.delay.into()));
-
-    // TODO: Push a new message to SQS.
-    println!("Get since_id {} for {}.", event.since_id, event.params);
 }
 
 // For debug purposes.
