@@ -1,11 +1,14 @@
+extern crate rusoto_sns;
+
 use std::thread;
-use region::Region;
+use region::TweetRegion;
 use std::sync::mpsc;
 use event::OutputEvent;
 use std::time::Duration;
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::Receiver;
 
+// TODO: Refactor this.
 pub enum Topic {
     UnknownRegion,
     SqsConnDropped,
@@ -21,10 +24,10 @@ pub fn notify(topic: Topic) {
     println!("{}", message);
 }
 
-/// Clones `std::sync::mpcs::Sender` to every item in given `Vec<Region>`
+/// Clones `std::sync::mpcs::Sender` to every item in given `Vec<TweetRegion>`
 /// and spawns a new thread that listens to messages from this channel.
 /// The message type that is sent across the channel has to be of `OutputEvent` type.
-pub fn stream(regions: &mut Vec<Region>) {
+pub fn stream(regions: &mut Vec<TweetRegion>) {
     // Boots a new channel.
     let (tx, rx): (Sender<OutputEvent>, Receiver<OutputEvent>) = mpsc::channel();
 
@@ -53,4 +56,3 @@ fn push(event: OutputEvent) {
     // TODO: Push a new message to SNS.
     println!("Get since_id {} for {}.", event.since_id, event.params);
 }
-

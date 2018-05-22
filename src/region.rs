@@ -1,16 +1,18 @@
-//! Region struct represents a parameter collection for Tweet search.
+//! TweetRegion struct represents a parameter collection for Tweet search.
 
+use sqs;
+use sns;
 use event::InputEvent;
 use event::OutputEvent;
 use std::sync::mpsc::Sender;
 
 /// A single region struct.
-pub struct Region {
+pub struct TweetRegion {
     /// Private integer representing the minumum delay between API calls in seconds.
-    tick: u8,
+    tick: u64,
 
     /// An identifier.
-    pub id: u8,
+    pub id: u64,
 
     /// BigInteger with the highest Tweet ID in a region.
     pub since_id: u64,
@@ -23,11 +25,10 @@ pub struct Region {
     pub channel: Option<Sender<OutputEvent>>,
 }
 
-impl Region {
-    /// Builds a new default `Region`.
-    /// TODO: Implement `Default` for `Region`.
-    pub fn new(id: u8, params: String) -> Region {
-        Region {
+impl TweetRegion {
+    /// Builds a new default `TweetRegion`.
+    pub fn new(id: u64, params: String) -> TweetRegion {
+        TweetRegion {
             id: id,
             tick: 1,
             since_id: 0,
@@ -36,20 +37,20 @@ impl Region {
         }
     }
 
-    /// Setter for `Region.tick`.
-    pub fn tick(&mut self, seconds: u8) -> &mut Region {
+    /// Setter for `TweetRegion.tick`.
+    pub fn tick(&mut self, seconds: u64) -> &mut TweetRegion {
         self.tick = seconds;
         self
     }
 
-    /// Setter for `Region.channel`.
-    pub fn channel(&mut self, tx: Sender<OutputEvent>) -> &mut Region {
+    /// Setter for `TweetRegion.channel`.
+    pub fn channel(&mut self, tx: Sender<OutputEvent>) -> &mut TweetRegion {
         self.channel = Some(tx);
         self
     }
 
-    /// Setter for `Region.since_id`.
-    pub fn since_id(&mut self, since_id: u64) -> &mut Region {
+    /// Setter for `TweetRegion.since_id`.
+    pub fn since_id(&mut self, since_id: u64) -> &mut TweetRegion {
         self.since_id = since_id;
         self
     }
@@ -63,12 +64,12 @@ impl Region {
         }
 
         // Decides how many seconds should the scheduler wait before rescheduling.
-        let delay: u8 = match event.error {
+        let delay: u64 = match event.error {
             // If there is an error, it will have an information about how long
             // should we wait.
-            Some(wait_before_restart) => self.tick + wait_before_restart, 
-            
-            // If there is no error, wait for `Region.tick` seconds plus
+            Some(wait_before_restart) => self.tick + wait_before_restart,
+
+            // If there is no error, wait for `TweetRegion.tick` seconds plus
             // an extra second for every empty slot in the last call.
             None => self.tick + 100 - event.tweets_count,
         };
@@ -86,6 +87,22 @@ impl Region {
             Some(ref mut channel) => channel.send(payload).unwrap(),
             None => println!("TODO: Propagate error."),
         }
+    }
+}
+
+pub fn route(mut regions: Vec<TweetRegion>) {
+    // Blocks thread and polls messages from SQS.
+    for event in sqs::listen() {
+        // Finds the region via the identifier.
+        let mut region = regions.iter_mut()
+            .find(|region| region.id == event.region_id);
+
+        match region {
+            // Let the region handle the event.
+            Some(ref mut region) => region.handle_event(event),
+            // TODO: Refactor SNS.
+            None => sns::notify(sns::Topic::UnknownRegion),
+        };
     }
 }
 
