@@ -30,7 +30,10 @@ fn main() {
             // Routes the SQS events to a relevant region.
             // TODO: Change the file structure.
             region::route(regions);
+
+            sns::notify(sns::Topic::SqsConnDropped);
         },
         Err(error) => println!("TODO: Report in sns{}", error),
     };
 }
+
