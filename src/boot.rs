@@ -38,7 +38,7 @@ pub fn get_regions() -> Result<Vec<TweetRegion>, &'static str> {
 }
 
 fn parse_json_to_regions(json: Value) -> Result<Vec<TweetRegion>, &'static str> {
-	let regions = json["regions"].as_array().expect("Property regions isn't an array").iter();
+	let regions = json["regions"].as_array().expect("Property regions isn't an array");
     /// Minimum delay between scheduled output events in seconds per window (15 minutes).
     /// Prevents overflooding the Twitter API with requests.
     let delay_between_calls: u64 = 900 / json["api_limits"]["search"].as_u64().unwrap_or(450);
@@ -53,12 +53,11 @@ fn parse_json_to_regions(json: Value) -> Result<Vec<TweetRegion>, &'static str> 
     /// us.mix_delay = delay_between_calls * flex_sum * us.flex / regions.len = 5*3*2/2
     /// That means that the fastest US region can make API calls is once every 15 seconds.
     /// n uk ukus n uk ukus n uk ukus n uk ukus
-    let flex_sum: u64 = 0;
-    // regions.fold(0, |acc, region| acc + region["flex"].as_u64().unwrap_or(1));
-
+    let flex_sum: u64 = regions.iter().fold(0, |acc, region| acc + region["flex"].as_u64().unwrap_or(1));
+    let base_tick: u64 = 1000 * delay_between_calls * flex_sum / regions.len();
     println!("{}", base_tick);
 
-    let regions: Vec<TweetRegion> = regions
+    let regions: Vec<TweetRegion> = regions.iter()
         .filter_map(|item| {
             let params: String = to_string(item["params"].as_object()?)
 				.expect("Couldn't stringify params.");
