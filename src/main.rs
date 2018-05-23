@@ -3,8 +3,9 @@
 //! Also listens to another SQS that informs about a result of a call
 //! and then reschedules the call based on that result.
 
-extern crate rusoto_core;
+#[macro_use]
 extern crate serde_json;
+extern crate rusoto_core;
 extern crate rusoto_sns;
 extern crate rusoto_s3;
 extern crate futures;
@@ -39,4 +40,3 @@ fn main() {
         Err(error) => println!("TODO: Report in sns{}", error),
     };
 }
-
