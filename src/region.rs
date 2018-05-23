@@ -74,6 +74,10 @@ impl TweetRegion {
             None => self.tick + 100 - event.tweets_count,
         };
 
+        self.fire_in(delay);
+    }
+
+    pub fn fire_in(&mut self, delay: u64) {
         // Create a payload.
         let payload = OutputEvent {
             delay: delay,
@@ -86,7 +90,7 @@ impl TweetRegion {
         match self.channel {
             Some(ref mut channel) => channel.send(payload).unwrap(),
             None => println!("TODO: Propagate error."),
-        }
+        };
     }
 }
 
@@ -106,3 +110,8 @@ pub fn route(mut regions: Vec<TweetRegion>) {
     }
 }
 
+pub fn fire_all(regions: &mut Vec<TweetRegion>) {
+    for region in regions.iter_mut() {
+        region.fire_in(0);
+    }
+}

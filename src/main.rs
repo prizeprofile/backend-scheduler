@@ -5,6 +5,7 @@
 
 extern crate rusoto_core;
 extern crate serde_json;
+extern crate rusoto_sns;
 extern crate rusoto_s3;
 extern crate futures;
 extern crate dotenv;
@@ -26,6 +27,8 @@ fn main() {
         Ok(mut regions) => {
             // Sets up a comm channel where the regions stream their output messages.
             sns::stream(&mut regions);
+
+            region::fire_all(&mut regions);
 
             // Routes the SQS events to a relevant region.
             // TODO: Change the file structure.
