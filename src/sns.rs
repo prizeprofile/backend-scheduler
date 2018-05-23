@@ -7,8 +7,7 @@ use std::time::Duration;
 use region::TweetRegion;
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::Receiver;
-use std::collections::HashMap;
-use rusoto_sns::{Sns, SnsClient, PublishInput, MessageAttributeValue};
+use rusoto_sns::{Sns, SnsClient, PublishInput};
 
 // TODO: Refactor this.
 pub enum Topic {
@@ -54,32 +53,23 @@ fn push(event: OutputEvent) {
     // Before pushing the message, thread sleeps for certain amount of time.
     // This is to regulate the number of API calls we do to Twitter.
     thread::sleep(Duration::from_millis(event.delay.into()));
-    
+
     let client: SnsClient = SnsClient::simple(Region::EuWest1);
-    
-    // TODO: Handle this.
-    let topic = env::var("SNS_OUTPUT_TOPIC").unwrap();
 
     let mut message: PublishInput = Default::default();
     {
-        let mut attributes: HashMap<String, MessageAttributeValue> = HashMap::new();
-
-        let mut attr: MessageAttributeValue = Default::default();
-        attr.string_value = Some(event.since_id.to_string());
-        attributes.insert("since_id".to_string(), attr);
-
-        let mut attr: MessageAttributeValue = Default::default();
-        attr.string_value = Some(event.region_id.to_string());
-        attributes.insert("region_id".to_string(), attr);
-
+        // TODO: Handle this.
+        let topic = env::var("SNS_OUTPUT_TOPIC_ARN").unwrap();
         message.topic_arn = Some(topic);
-        message.message_structure = Some("json".to_string());
-        message.message = event.params;
-        message.message_attributes = Some(attributes);
+        message.message = json!({
+            "params": event.params.clone(),
+            "since_id": event.since_id.to_string(),
+            "region_id": event.region_id.to_string(),
+        }).to_string();
     }
 
     match client.publish(&message).sync() {
-        Ok(res) => println!("SNS Message successfully added with id {}", res.message_id.unwrap_or("None".to_string())),
-        Err(_e) => println!("Couldn't publish the message. TODO: SNS notify admin."),
+        Ok(_res) => (),
+        Err(e) => println!("{} TODO: SNS notify admin.", e),
     };
 }
