@@ -59,9 +59,11 @@ impl TweetRegion {
     /// TODO: Implement error propagation.
     pub fn handle_event(&mut self, event: InputEvent) {
         // Only update since_id if max_id of incoming event is higher.
-        if event.max_id > self.since_id {
-            self.since_id = event.max_id.clone() + 1;
+        if event.max_id <= self.since_id {
+            return
         }
+
+        self.since_id = event.max_id.clone();
 
         // Decides how many seconds should the scheduler wait before rescheduling.
         let delay: u64 = match event.error {
