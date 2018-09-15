@@ -48,8 +48,9 @@ fn parse_json_to_regions(json: Value) -> Result<Vec<TweetRegion>, &'static str> 
 				.expect("Couldn't stringify params.");
             let region_id: u64 = item["id"].as_u64()?;
             let since_id: u64 = get_latest_id_for_region(region_id).unwrap_or(0);
+            let topic: String = item["sns_topic"].as_str()?.to_string();
 
-            let mut region = TweetRegion::new(region_id, params);
+            let mut region = TweetRegion::new(region_id, topic, params);
             region.tick(item["flex"].as_u64()? * base_tick);
 			region.since_id(since_id);
             Some(region)
