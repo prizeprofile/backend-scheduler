@@ -25,7 +25,7 @@ pub fn get_latest_id_for_region(region_id: u64) -> Result<u64, &'static str> {
             }
 
             tweet_id
-        }).unwrap();
+        }).unwrap_or(1);
 
     Ok(id)
 }
