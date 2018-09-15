@@ -13,8 +13,7 @@ use rusoto_sqs::{Sqs, SqsClient, ReceiveMessageRequest, Message, DeleteMessageRe
 pub fn listen() -> Receiver<InputEvent> {
     // Boots a new channel.
     let (tx, rx): (Sender<InputEvent>, Receiver<InputEvent>) = mpsc::channel();
-
-    // TODO: Poll from AWS SQS.
+    
     thread::spawn(move || {
         let client: SqsClient = SqsClient::simple(Region::EuWest1);
         

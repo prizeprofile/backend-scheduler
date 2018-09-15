@@ -1,8 +1,9 @@
 use std::env;
 use region::TweetRegion;
 use rusoto_core::Region;
-use serde_json::{Value, from_str, to_string};
+use db::get_latest_id_for_region;
 use futures::{Stream, Future, IntoFuture};
+use serde_json::{Value, from_str, to_string};
 use rusoto_s3::{S3, S3Client, GetObjectRequest};
 
 pub fn get_regions() -> Result<Vec<TweetRegion>, &'static str> {
@@ -10,11 +11,10 @@ pub fn get_regions() -> Result<Vec<TweetRegion>, &'static str> {
 
     let mut req: GetObjectRequest = Default::default();
     {
-        req.bucket = env::var("S3_REGIONS_BUCKET").expect("Missing env var");
-        req.key = env::var("S3_REGIONS_KEY").expect("Missing env var");
+        req.bucket = env::var("S3_REGIONS_BUCKET").expect("Config is missing some fields [S3_REGIONS_BUCKET]");
+        req.key = env::var("S3_REGIONS_KEY").expect("Config is missing some fields [S3_REGIONS_KEY]");
     }
     
-    // TODO: Put this into one future.
     let json: String = s3.get_object(&req)
         .sync().expect("Regions S3 conf error")
         .body.expect("Regions S3 conf empty")
@@ -27,9 +27,7 @@ pub fn get_regions() -> Result<Vec<TweetRegion>, &'static str> {
 
     let json: Value = from_str(&json).expect("Invalid JSON");
     
-    let regions: Vec<TweetRegion> = parse_json_to_regions(json)
-        .expect("Json couldn't be parsed");
-        // TODO: Load last since_id from DB.
+    let regions: Vec<TweetRegion> = parse_json_to_regions(json)?;
     
     Ok(regions)
 }
@@ -45,14 +43,15 @@ fn parse_json_to_regions(json: Value) -> Result<Vec<TweetRegion>, &'static str> 
     let base_tick: u64 = 1000 * delay_between_calls * flex_sum / regions.len() as u64;
 
     let regions: Vec<TweetRegion> = regions.iter()
-        // TODO: Inform admin about region misconfiguration.
         .filter_map(|item| {
             let params: String = to_string(item["params"].as_object()?)
 				.expect("Couldn't stringify params.");
+            let region_id: u64 = item["id"].as_u64()?;
+            let since_id: u64 = get_latest_id_for_region(region_id).unwrap_or(0);
 
-            let mut region = TweetRegion::new(item["id"].as_u64()?, params);
+            let mut region = TweetRegion::new(region_id, params);
             region.tick(item["flex"].as_u64()? * base_tick);
-			region.since_id(1);
+			region.since_id(since_id);
             Some(region)
         })
         .collect::<Vec<TweetRegion>>();

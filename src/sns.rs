@@ -59,6 +59,7 @@ fn push(event: OutputEvent) {
     let mut message: PublishInput = Default::default();
     {
         // TODO: Handle this.
+        // TODO: Make the topic configurable from S3 bucket.
         let topic = env::var("SNS_OUTPUT_TOPIC_ARN").unwrap();
         message.topic_arn = Some(topic);
         message.message = json!({
