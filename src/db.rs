@@ -1,7 +1,7 @@
 use mysql;
 use std::env;
 
-pub fn get_latest_id_for_region(region_id: u8) -> Result<u64, &'static str> {
+pub fn get_latest_id_for_region(region_id: u64) -> Result<u64, &'static str> {
     // TODO: Error handling.
     let user: String = env::var("DB_USER").expect("Config is missing some fields [DB_USER]");
     let host: String = env::var("DB_HOST").expect("Config is missing some fields [DB_HOST]");
@@ -12,8 +12,8 @@ pub fn get_latest_id_for_region(region_id: u8) -> Result<u64, &'static str> {
 
     let query: String = format!("
         SELECT tweet_id FROM competitions
-        ORDER BY tweet_id DESC LIMIT 1
-        WHERE region_id = {}", region_id);
+        WHERE region_id = {}
+        ORDER BY tweet_id DESC LIMIT 1", region_id);
 
     let id: u64 =
         pool.prep_exec(query, ())
@@ -26,8 +26,6 @@ pub fn get_latest_id_for_region(region_id: u8) -> Result<u64, &'static str> {
 
             tweet_id
         }).unwrap();
-
-    println!("Highest id is {}", id);
 
     Ok(id)
 }

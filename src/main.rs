@@ -6,6 +6,7 @@
 #[macro_use]
 extern crate serde_derive;
 extern crate rusoto_core;
+#[macro_use]
 extern crate serde_json;
 extern crate rusoto_sqs;
 extern crate rusoto_sns;
