@@ -20,6 +20,9 @@ pub struct TweetRegion {
     /// JSON string of parameters that define a region.
     pub params: String,
 
+    /// SNS Topic that region should be pushed to.
+    pub topic: String,
+
     /// A `std::sync::mpsc::Sender` which streams `event::OutputEvent` to
     /// `sqs::stream` and pushes them to an AWS SQS.
     pub channel: Option<Sender<OutputEvent>>,
@@ -27,12 +30,13 @@ pub struct TweetRegion {
 
 impl TweetRegion {
     /// Builds a new default `TweetRegion`.
-    pub fn new(id: u64, params: String) -> TweetRegion {
+    pub fn new(id: u64, topic: String, params: String) -> TweetRegion {
         TweetRegion {
             id: id,
             tick: 1,
             since_id: 0,
             channel: None,
+            topic: topic,
             params: params,
         }
     }
@@ -56,7 +60,6 @@ impl TweetRegion {
     }
 
     /// Handles an incoming SQS message and generates an outcoming one.
-    /// TODO: Implement error propagation.
     pub fn handle_event(&mut self, event: InputEvent) {
         // Only update since_id if max_id of incoming event is higher.
         if event.max_id <= self.since_id {
@@ -86,6 +89,7 @@ impl TweetRegion {
             region_id: self.id,
             params: self.params.clone(),
             since_id: self.since_id,
+            topic: self.topic.clone()
         };
 
         // Stream the payload down the channel.

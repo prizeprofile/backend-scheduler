@@ -35,4 +35,7 @@ pub struct OutputEvent {
 
     /// JSON string of parameters that define a region.
     pub params: String,
+
+    /// SNS Topic that region should be pushed to.
+    pub topic: String,
 }
