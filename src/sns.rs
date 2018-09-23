@@ -1,4 +1,3 @@
-use std::env;
 use std::thread;
 use std::sync::mpsc;
 use event::OutputEvent;
@@ -58,9 +57,7 @@ fn push(event: OutputEvent) {
 
     let mut message: PublishInput = Default::default();
     {
-        // TODO: Handle this.
-        let topic = env::var("SNS_OUTPUT_TOPIC_ARN").unwrap();
-        message.topic_arn = Some(topic);
+        message.topic_arn = Some(event.topic);
         message.message = json!({
             "params": event.params.clone(),
             "since_id": event.since_id.to_string(),

@@ -4,13 +4,18 @@
 //! and then reschedules the call based on that result.
 
 #[macro_use]
-extern crate serde_json;
+extern crate serde_derive;
 extern crate rusoto_core;
+#[macro_use]
+extern crate serde_json;
+extern crate rusoto_sqs;
 extern crate rusoto_sns;
 extern crate rusoto_s3;
 extern crate futures;
 extern crate dotenv;
+extern crate mysql;
 
+mod db;
 mod sns;
 mod sqs;
 mod boot;
