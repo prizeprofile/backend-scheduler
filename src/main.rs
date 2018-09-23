@@ -42,6 +42,6 @@ fn main() {
 
             sns::notify(sns::Topic::SqsConnDropped);
         },
-        Err(error) => println!("TODO: Report in sns{}", error),
+        Err(error) => ln!("TODO: Report in sns{}", error),
     };
 }

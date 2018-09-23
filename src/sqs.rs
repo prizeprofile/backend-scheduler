@@ -21,7 +21,6 @@ pub fn listen() -> Receiver<InputEvent> {
         loop {
             match poll_messages(&client) {
                 Some(messages) => {
-                    println!("Received: {}", messages.len());
                     // TODO: Handle error.
                     for message in messages.into_iter() {
                         tx.send(message).unwrap();
