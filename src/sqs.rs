@@ -21,7 +21,6 @@ pub fn listen() -> Receiver<InputEvent> {
         loop {
             match poll_messages(&client) {
                 Some(messages) => {
-                    // TODO: Handle error.
                     for message in messages.into_iter() {
                         tx.send(message).unwrap();
                     }
@@ -61,10 +60,9 @@ fn poll_messages(client: &SqsClient) -> Option<Vec<InputEvent>> {
             entry.receipt_handle = message.receipt_handle?;
         }
 
-        // TODO: Handle this.
         let json: Value = from_str(&message.body?).unwrap(); 
         let region_id: u64 = json["region_id"].as_u64()?;
-        let max_id: u64 = json["max_id"].as_u64()?;
+        let max_id: u64 = json["max_id"].as_str()?.parse().unwrap();
         let tweets_count: u64 = json["tweets_count"].as_u64()?;
         let error: Option<u64> = json["error_delay"].as_u64();
         let event: InputEvent = InputEvent {
