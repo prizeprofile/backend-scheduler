@@ -17,6 +17,9 @@ pub struct TweetRegion {
     /// BigInteger with the highest Tweet ID in a region.
     pub since_id: u64,
 
+    /// Bool that blocks events with max_id lower or equal to since_id if true. 
+    pub compare_since_id: bool,
+
     /// JSON string of parameters that define a region.
     pub params: String,
 
@@ -35,9 +38,10 @@ impl TweetRegion {
             id: id,
             tick: 1,
             since_id: 0,
-            channel: None,
             topic: topic,
+            channel: None,
             params: params,
+            compare_since_id: true
         }
     }
 
@@ -59,10 +63,16 @@ impl TweetRegion {
         self
     }
 
+    /// Setter for `TweetRegion.compare_since_id`.
+    pub fn compare_since_id(&mut self, compare_since_id: bool) -> &mut TweetRegion {
+        self.compare_since_id = compare_since_id;
+        self
+    }
+
     /// Handles an incoming SQS message and generates an outcoming one.
     pub fn handle_event(&mut self, event: InputEvent) {
         // Only update since_id if max_id of incoming event is higher.
-        if event.max_id <= self.since_id {
+        if self.compare_since_id && event.max_id <= self.since_id {
             return
         }
 

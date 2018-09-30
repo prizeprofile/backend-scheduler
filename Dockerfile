@@ -8,4 +8,3 @@ RUN cargo install
 EXPOSE 80
 
 CMD ["cargo", "run", "--release"]
-

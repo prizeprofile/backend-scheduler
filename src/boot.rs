@@ -49,14 +49,18 @@ fn parse_json_to_regions(json: Value) -> Result<Vec<TweetRegion>, &'static str> 
             let region_id: u64 = item["id"].as_u64()?;
             let since_id: u64 = get_latest_id_for_region(region_id).unwrap_or(0);
             let topic: String = item["sns_topic"].as_str()?.to_string();
+            let compare_since_id: bool = item["compare_since_id"].as_bool()?;
 
             let mut region = TweetRegion::new(region_id, topic, params);
-            region.tick(item["flex"].as_u64()? * base_tick);
-			region.since_id(since_id);
+            {
+                region.tick(item["flex"].as_u64()? * base_tick);
+			    region.since_id(since_id);
+			    region.compare_since_id(compare_since_id);
+            }
+
             Some(region)
         })
         .collect::<Vec<TweetRegion>>();
 
     Ok(regions)
 }
-
