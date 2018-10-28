@@ -3,7 +3,7 @@ use std::sync::mpsc;
 use event::OutputEvent;
 use rusoto_core::Region;
 use std::time::Duration;
-use region::TweetRegion;
+use region::ResourceRegion;
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::Receiver;
 use rusoto_sns::{Sns, SnsClient, PublishInput};
@@ -24,10 +24,10 @@ pub fn notify(topic: Topic) {
     println!("{}", message);
 }
 
-/// Clones `std::sync::mpcs::Sender` to every item in given `Vec<TweetRegion>`
+/// Clones `std::sync::mpcs::Sender` to every item in given `Vec<ResourceRegion>`
 /// and spawns a new thread that listens to messages from this channel.
 /// The message type that is sent across the channel has to be of `OutputEvent` type.
-pub fn stream(regions: &mut Vec<TweetRegion>) {
+pub fn stream(regions: &mut Vec<ResourceRegion>) {
     // Boots a new channel.
     let (tx, rx): (Sender<OutputEvent>, Receiver<OutputEvent>) = mpsc::channel();
 
@@ -64,6 +64,8 @@ fn push(event: OutputEvent) {
             "region_id": event.region_id.to_string(),
         }).to_string();
     }
+
+    println!("[Publish] region: {}, since_id: {}", event.region_id, event.since_id);
 
     match client.publish(&message).sync() {
         Ok(_res) => (),
