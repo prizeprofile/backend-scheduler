@@ -15,11 +15,12 @@ pub fn listen() -> Receiver<InputEvent> {
     let (tx, rx): (Sender<InputEvent>, Receiver<InputEvent>) = mpsc::channel();
     
     thread::spawn(move || {
+        let queue_url = env::var("SQS_RESULT_QUEUE").unwrap();
         let client: SqsClient = SqsClient::simple(Region::EuWest1);
         
         // Polls for messages every second.
         loop {
-            match poll_messages(&client) {
+            match poll_messages(&client, queue_url.clone()) {
                 Some(messages) => {
                     for message in messages.into_iter() {
                         tx.send(message).unwrap();
@@ -36,9 +37,7 @@ pub fn listen() -> Receiver<InputEvent> {
     rx
 }
 
-fn poll_messages(client: &SqsClient) -> Option<Vec<InputEvent>> {
-    let queue_url = env::var("SQS_RESULT_QUEUE").unwrap();
-    
+fn poll_messages(client: &SqsClient, queue_url: String) -> Option<Vec<InputEvent>> {
     let mut req: ReceiveMessageRequest = Default::default();
     {
         req.queue_url = queue_url.clone();
@@ -60,17 +59,21 @@ fn poll_messages(client: &SqsClient) -> Option<Vec<InputEvent>> {
             entry.receipt_handle = message.receipt_handle?;
         }
 
+        println!("[Polled]");
+
         let json: Value = from_str(&message.body?).unwrap(); 
         let region_id: u64 = json["region_id"].as_u64()?;
         let max_id: u64 = json["max_id"].as_str()?.parse().unwrap();
-        let tweets_count: u64 = json["tweets_count"].as_u64()?;
+        let resources_count: u64 = json["resources_count"].as_u64()?;
         let error: Option<u64> = json["error_delay"].as_u64();
         let event: InputEvent = InputEvent {
             region_id: region_id,
             max_id: max_id,
-            tweets_count: tweets_count,
+            resources_count: resources_count,
             error: error
         };
+
+        println!("[Messaged] region: {}, max_id: {}, resources: {}", region_id, max_id, resources_count);
 
         match client.delete_message(&entry).sync() {
             Ok(_) => Some(event),

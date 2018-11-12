@@ -1,12 +1,12 @@
 use std::env;
-use region::TweetRegion;
+use region::ResourceRegion;
 use rusoto_core::Region;
 use db::get_latest_id_for_region;
 use futures::{Stream, Future, IntoFuture};
 use serde_json::{Value, from_str, to_string};
 use rusoto_s3::{S3, S3Client, GetObjectRequest};
 
-pub fn get_regions() -> Result<Vec<TweetRegion>, &'static str> {
+pub fn get_regions() -> Result<Vec<ResourceRegion>, &'static str> {
     let s3 = S3Client::simple(Region::EuWest1);
 
     let mut req: GetObjectRequest = Default::default();
@@ -27,12 +27,12 @@ pub fn get_regions() -> Result<Vec<TweetRegion>, &'static str> {
 
     let json: Value = from_str(&json).expect("Invalid JSON");
     
-    let regions: Vec<TweetRegion> = parse_json_to_regions(json)?;
+    let regions: Vec<ResourceRegion> = parse_json_to_regions(json)?;
     
     Ok(regions)
 }
 
-fn parse_json_to_regions(json: Value) -> Result<Vec<TweetRegion>, &'static str> {
+fn parse_json_to_regions(json: Value) -> Result<Vec<ResourceRegion>, &'static str> {
 	let regions = json["regions"].as_array().expect("Property regions isn't an array");
     // Minimum delay between scheduled output events in seconds per window (15 minutes).
     // Prevents overflooding the Twitter API with requests.
@@ -42,7 +42,7 @@ fn parse_json_to_regions(json: Value) -> Result<Vec<TweetRegion>, &'static str> 
     let flex_sum: u64 = regions.iter().fold(0, |acc, region| acc + region["flex"].as_u64().unwrap_or(1));
     let base_tick: u64 = 1000 * delay_between_calls * flex_sum / regions.len() as u64;
 
-    let regions: Vec<TweetRegion> = regions.iter()
+    let regions: Vec<ResourceRegion> = regions.iter()
         .filter_map(|item| {
             let params: String = to_string(item["params"].as_object()?)
 				.expect("Couldn't stringify params.");
@@ -51,7 +51,7 @@ fn parse_json_to_regions(json: Value) -> Result<Vec<TweetRegion>, &'static str> 
             let topic: String = item["sns_topic"].as_str()?.to_string();
             let compare_since_id: bool = item["compare_since_id"].as_bool()?;
 
-            let mut region = TweetRegion::new(region_id, topic, params);
+            let mut region = ResourceRegion::new(region_id, topic, params);
             {
                 region.tick(item["flex"].as_u64()? * base_tick);
 			    region.since_id(since_id);
@@ -60,7 +60,7 @@ fn parse_json_to_regions(json: Value) -> Result<Vec<TweetRegion>, &'static str> 
 
             Some(region)
         })
-        .collect::<Vec<TweetRegion>>();
+        .collect::<Vec<ResourceRegion>>();
 
     Ok(regions)
 }

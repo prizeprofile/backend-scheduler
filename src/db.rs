@@ -11,20 +11,20 @@ pub fn get_latest_id_for_region(region_id: u64) -> Result<u64, &'static str> {
     let pool = mysql::Pool::new(credentials).expect("Couldn't connect to the database");
 
     let query: String = format!("
-        SELECT tweet_id FROM competitions
+        SELECT resource_id FROM competitions
         WHERE region_id = {}
-        ORDER BY tweet_id DESC LIMIT 1", region_id);
+        ORDER BY resource_id DESC LIMIT 1", region_id);
 
     let id: u64 =
         pool.prep_exec(query, ())
         .map(|result| {
-            let mut tweet_id: u64 = 0;
+            let mut resource_id: u64 = 0;
 
             for xd in result.map(|x| x.unwrap()) {
-                tweet_id = mysql::from_row(xd);
+                resource_id = mysql::from_row(xd);
             }
 
-            tweet_id
+            resource_id
         }).unwrap_or(1);
 
     Ok(id)

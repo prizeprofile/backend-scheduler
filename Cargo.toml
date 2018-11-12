@@ -1,6 +1,6 @@
 [package]
 name = "prizeprofile-scheduler"
-version = "1.0.5"
+version = "1.0.7"
 authors = ["Michael Bausano <michael@joinpouch.com>"]
 
 [dependencies]
