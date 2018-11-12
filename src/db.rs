@@ -13,7 +13,8 @@ pub fn get_latest_id_for_region(region_id: u64) -> Result<u64, &'static str> {
     let query: String = format!("
         SELECT resource_id FROM competitions
         WHERE region_id = {}
-        ORDER BY resource_id DESC LIMIT 1", region_id);
+        AND source_id = 0
+        ORDER BY created_at DESC LIMIT 1", region_id);
 
     let id: u64 =
         pool.prep_exec(query, ())
